@@ -18,7 +18,25 @@ Command line usage:
 
 
 import argparse
+import hashlib
 import sys
+
+
+BLOCKSIZE = 1024*1024
+
+
+def read_hashes(f):
+    """Return list of MD5 hashes for all blocks read from the open file
+    object.
+    """
+    md5_hashes = []
+    while True:
+        data = f.read(BLOCKSIZE)
+        if not data:
+            break
+        md5_hash = hashlib.md5(data).digest()
+        md5_hashes.append(md5_hash)
+    return md5_hashes
 
 
 def main(args=None):
