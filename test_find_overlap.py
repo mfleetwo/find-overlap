@@ -8,17 +8,28 @@ Performs find-overlap.py command line parsing tests.
 
 Executes the command with different arguments to perform this testing,
 therefore requires the PATH environment variable to be modified so that
-'find-overlap.py' is found.  Namely run Pytest like this:
+'find-overlap.py' is found.  This script adds the current directory to
+the start of the PATH so run Pytest like this:
 
     cd .../find-overlap
-    PATH="$PWD:$PATH" python -m pytest
+    python -m pytest
 """
 
 
+import os
 import subprocess
 
 
 EXIT_SUCCESS = 0
+
+
+def setup_module():
+    """Extend PATH with current working directory to allow
+    find-overlap.py executable to be found
+    """
+    cwd = os.getcwd()
+    path = os.environ['PATH']
+    os.environ['PATH'] = cwd + os.pathsep + path
 
 
 def test_command_line_help_option():
