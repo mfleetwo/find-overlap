@@ -62,12 +62,20 @@ def test_command_line_two_arguments():
     assert rc != EXIT_SUCCESS
 
 
+RESULT_MD5_HASHES = [b"\xb6\xd8\x1b6\nVr\xd8\x0c'C\x0f9\x15>,",
+                     b"\xb6\xd8\x1b6\nVr\xd8\x0c'C\x0f9\x15>,",
+                     b'Y\x07\x15\x90\t\x9d!\xddC\x98\x96Y#8\xbf\x95']
 def test_read_hashes():
     """Test reading 2.5 MiB of binary zero produces the expected list of
     MD5 hashes
     """
     f = io.BytesIO(int(find_overlap.BLOCKSIZE * 2.5) * b'\x00')
     result = find_overlap.read_hashes(f)
-    assert result == [b"\xb6\xd8\x1b6\nVr\xd8\x0c'C\x0f9\x15>,",
-                      b"\xb6\xd8\x1b6\nVr\xd8\x0c'C\x0f9\x15>,",
-                      b'Y\x07\x15\x90\t\x9d!\xddC\x98\x96Y#8\xbf\x95']
+    assert result == RESULT_MD5_HASHES
+
+
+def test_generate_matching_hashes():
+    """Test using result from test_read_hashes()"""
+    result = find_overlap.generate_matching_hashes(RESULT_MD5_HASHES)
+    assert result == {b"\xb6\xd8\x1b6\nVr\xd8\x0c'C\x0f9\x15>,": [0, 1],
+                      b'Y\x07\x15\x90\t\x9d!\xddC\x98\x96Y#8\xbf\x95': [2]}

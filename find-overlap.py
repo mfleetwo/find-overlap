@@ -39,6 +39,29 @@ def read_hashes(f):
     return md5_hashes
 
 
+def generate_matching_hashes(md5_hashes):
+    """Return a dictionary with MD5 hash as the key to the list of
+    blocks numbers with with the same hash from the list of MD5 hashes.
+
+    Example:
+
+        >>> generate_matching_hashes(['#0', '#0', '#2'])
+        {'#0': [0, 1], '#2': [2]}
+
+    Read the returned dictionary as key '#0' is the hash for data blocks
+    0 and 1, and key '#2' is the hash for block 2.
+    """
+    matching_hashes = {}
+    blknum = 0
+    for md5_hash in md5_hashes:
+        if md5_hash in matching_hashes:
+            matching_hashes[md5_hash].append(blknum)
+        else:
+            matching_hashes[md5_hash] = [blknum]
+        blknum += 1
+    return matching_hashes
+
+
 def main(args=None):
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description="""
