@@ -86,3 +86,9 @@ def test_eliminate_non_duplicates():
     result_dict = {'#1': [1, 2]}
     find_overlap.eliminate_non_duplicates(test_dict)
     assert test_dict == result_dict
+
+
+def test_compute_offset_blocks():
+    test_dict = {'#0': [1, 8], '#1': [10, 13], '#2': [11, 14], '#3': [12, 15]}
+    result = find_overlap.compute_offset_blocks(test_dict)
+    assert result == {7: [1], 3: [10, 11, 12]}

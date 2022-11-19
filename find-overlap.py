@@ -83,6 +83,42 @@ def eliminate_non_duplicates(matching_hashes):
             del matching_hashes[key]
 
 
+def compute_offset_blocks(matching_hashes):
+    """Return a new dictionary keyed by the offset between two blocks
+    with the same MD5 hash which looks up the list of the first of each
+    pair of matched blocks.  The second matching block is simply the
+    first block number plus the offset used as the dictionary key.
+
+    Example:
+        >>> compute_offset_blocks({'#0': [1, 8],
+                                   '#1': [10, 13],
+                                   '#2': [11, 14],
+                                   '#3': [12, 15]})
+        {7: [1], 3: [10, 11, 12]}
+
+    Read the returned dictionary as saying block [1] has a partner with
+    the same MD5 hash at offset 7, namely block [8], and blocks
+    [10, 11, 12] have partners with the same MD5 hash at offset 3, namely
+    blocks [13, 14, 15] respectively.
+    """
+    offset_blocks = {}
+    for blknums in matching_hashes.values():
+        fst_dup_blknum = blknums[0]
+        snd_dup_blknum = blknums[1]
+        offset = snd_dup_blknum - fst_dup_blknum
+        if offset in offset_blocks:
+            offset_blocks[offset].append(fst_dup_blknum)
+        else:
+            offset_blocks[offset] = [fst_dup_blknum]
+    # Above iteration of matching_hashes dict values is probably in the
+    # key (MD5 hash) order and definitely not in increasing block number
+    # order.  Sort the lists of duplicate block numbers (first block
+    # number of a duplicate pair).
+    for key in offset_blocks.keys():
+        offset_blocks[key].sort()
+    return offset_blocks
+
+
 def main(args=None):
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description="""
