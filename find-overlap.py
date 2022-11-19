@@ -62,6 +62,27 @@ def generate_matching_hashes(md5_hashes):
     return matching_hashes
 
 
+def eliminate_non_duplicates(matching_hashes):
+    """Mutate the passed matching hashes dictionary deleting items
+    (MD5 hash keys and block number lists) of non-duplicate blocks.
+
+    Example:
+        >>> matching_hashes = {'#0': [0],
+                               '#1': [1, 2],
+                               '#2': [3],
+                               '#3': [4, 5, 6]}
+        >>> eliminate_non_duplicates(matching_hashes)
+        >>> matching_hashes
+        {'#1': [1, 2]}
+    """
+    # FIXME:
+    # Investigate whether using offsets between groups of three or more
+    # blocks with the same MD5 hash adds to the signal or noise.
+    for key, value in matching_hashes.items():
+        if len(value) != 2:
+            del matching_hashes[key]
+
+
 def main(args=None):
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description="""

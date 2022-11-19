@@ -79,3 +79,10 @@ def test_generate_matching_hashes():
     result = find_overlap.generate_matching_hashes(RESULT_MD5_HASHES)
     assert result == {b"\xb6\xd8\x1b6\nVr\xd8\x0c'C\x0f9\x15>,": [0, 1],
                       b'Y\x07\x15\x90\t\x9d!\xddC\x98\x96Y#8\xbf\x95': [2]}
+
+
+def test_eliminate_non_duplicates():
+    test_dict = {'#0': [0], '#1': [1, 2], '#2': [3], '#3': [4, 5, 6]}
+    result_dict = {'#1': [1, 2]}
+    find_overlap.eliminate_non_duplicates(test_dict)
+    assert test_dict == result_dict
