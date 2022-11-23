@@ -64,22 +64,46 @@ def generate_matching_hashes(md5_hashes):
 
 def eliminate_non_duplicates(matching_hashes):
     """Mutate the passed matching hashes dictionary deleting items
-    (MD5 hash keys and block number lists) of non-duplicate blocks.
+    (MD5 hash keys and block number lists) of unique blocks and blocks
+    with more than 4 copies, as neither contribute to finding the
+    overlapping range.
 
     Example:
         >>> matching_hashes = {'#0': [0],
                                '#1': [1, 2],
                                '#2': [3],
-                               '#3': [4, 5, 6]}
+                               '#3': [4, 5, 6],
+                               '#4': [7, 8, 9, 10],
+                               '#5': [11, 12, 13, 14, 15]}
         >>> eliminate_non_duplicates(matching_hashes)
         >>> matching_hashes
-        {'#1': [1, 2]}
+        {'#1': [1, 2], '#3': [4, 5, 6], '#4': [7, 8, 9, 10]}
     """
-    # FIXME:
-    # Investigate whether using offsets between groups of three or more
-    # blocks with the same MD5 hash adds to the signal or noise.
+    # Real case test-hashes-f18089.txt.xz had:
+    #     Blocks:         748453   (1 MiB each)
+    #     Overlap size:    19585
+    #                                     within overlap range
+    #     Unique blocks:         253290
+    #     Matching pairs:        19756    19585 ( 99.1%)
+    #     Matching triples:      6        0     (  0.0%)
+    #     Matching quadruples:   0
+    #     
+    # Test case test-hashes-t1.txt.xz had:
+    # (Ext4 FS with 2 copies of 4.8 GiB of files and partial overlapping
+    # copy performed)
+    #     Blocks:         20480   (1 MiB each)
+    #     Overlap size:    4096
+    #                                   within overlap range
+    #     Unique blocks:         76
+    #     Matching pairs:        1043   1043 (100.0%)
+    #     Matching triples:      3665   3665 (100.0%)
+    #     Matching quadruples:   0
+    #     
+    # Therefore keep matching blocks up to a count of 4 replicas to
+    # allow for file systems containing multiple copies of files covered
+    # by the overlapping range.
     for key, value in matching_hashes.items():
-        if len(value) != 2:
+        if len(value) < 2 or len(value) > 4:
             del matching_hashes[key]
 
 

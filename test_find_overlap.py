@@ -82,8 +82,13 @@ def test_generate_matching_hashes():
 
 
 def test_eliminate_non_duplicates():
-    test_dict = {'#0': [0], '#1': [1, 2], '#2': [3], '#3': [4, 5, 6]}
-    result_dict = {'#1': [1, 2]}
+    test_dict = {'#0': [0],
+                 '#1': [1, 2],
+                 '#2': [3],
+                 '#3': [4, 5, 6],
+                 '#4': [7, 8, 9, 10],
+                 '#5': [11, 12, 13, 14, 15]}
+    result_dict = {'#1': [1, 2], '#3': [4, 5, 6], '#4': [7, 8, 9, 10]}
     find_overlap.eliminate_non_duplicates(test_dict)
     assert test_dict == result_dict
 
