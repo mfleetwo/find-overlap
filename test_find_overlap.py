@@ -94,6 +94,11 @@ def test_eliminate_non_duplicates():
 
 
 def test_compute_offset_blocks():
-    test_dict = {'#0': [1, 8], '#1': [10, 13], '#2': [11, 14], '#3': [12, 15]}
+    test_dict = {'#0': [1, 8],
+                 '#1': [10, 13],
+                 '#2': [11, 14],
+                 '#3': [12, 15],
+                 '#4': [20, 21, 22],
+                 '#5': [25, 26, 27, 28]}
     result = find_overlap.compute_offset_blocks(test_dict)
-    assert result == {7: [1], 3: [10, 11, 12]}
+    assert result == {1: [20, 21, 25, 26, 27], 2: [20, 25, 26], 3: [10, 11, 12, 25], 7: [1]}

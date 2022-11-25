@@ -117,23 +117,28 @@ def compute_offset_blocks(matching_hashes):
         >>> compute_offset_blocks({'#0': [1, 8],
                                    '#1': [10, 13],
                                    '#2': [11, 14],
-                                   '#3': [12, 15]})
-        {7: [1], 3: [10, 11, 12]}
+                                   '#3': [12, 15],
+                                   '#4': [20, 21, 22],
+                                   '#5': [25, 26, 27, 28]})
+        {1: [20, 21, 25, 26, 27], 2: [20, 25, 26], 3: [10, 11, 12, 25], 7: [1]}
 
-    Read the returned dictionary as saying block [1] has a partner with
-    the same MD5 hash at offset 7, namely block [8], and blocks
-    [10, 11, 12] have partners with the same MD5 hash at offset 3, namely
-    blocks [13, 14, 15] respectively.
+    Read the returned dictionary as saying blocks [20, 21, 25, 26, 27]
+    have a partner with the same MD5 hash at offset 1, namely blocks
+    [21, 22, 26, 27, 28] respectively, etc and finally block [1] has a
+    partner with the same MD5 hash at offset 7.
     """
     offset_blocks = {}
     for blknums in matching_hashes.values():
-        fst_dup_blknum = blknums[0]
-        snd_dup_blknum = blknums[1]
-        offset = snd_dup_blknum - fst_dup_blknum
-        if offset in offset_blocks:
-            offset_blocks[offset].append(fst_dup_blknum)
-        else:
-            offset_blocks[offset] = [fst_dup_blknum]
+        blknums_copy = list(blknums)
+        while len(blknums_copy) >= 2:
+            fst_dup_blknum = blknums_copy[0]
+            blknums_copy.pop(0)
+            for snd_dup_blknum in blknums_copy:
+                offset = snd_dup_blknum - fst_dup_blknum
+                if offset in offset_blocks:
+                    offset_blocks[offset].append(fst_dup_blknum)
+                else:
+                    offset_blocks[offset] = [fst_dup_blknum]
     # Above iteration of matching_hashes dict values is probably in the
     # key (MD5 hash) order and definitely not in increasing block number
     # order.  Sort the lists of duplicate block numbers (first block
