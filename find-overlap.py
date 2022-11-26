@@ -21,6 +21,8 @@ import argparse
 import hashlib
 import sys
 
+from collections import namedtuple
+
 
 BLOCKSIZE = 1024*1024
 
@@ -146,6 +148,70 @@ def compute_offset_blocks(matching_hashes):
     for key in offset_blocks.keys():
         offset_blocks[key].sort()
     return offset_blocks
+
+
+def find_start_matching_block(start, offset, md5_hashes):
+    """Return starting block which still matches at offset
+
+    From the start block, which is assumed to match the MD5 hash of
+    block at start + offset, search backwards for the earliest block
+    which still matches at block + offset.
+    """
+    while start > 0:
+        test = start - 1
+        if md5_hashes[test] != md5_hashes[test+offset]:
+            break
+        start = test
+    return start
+
+
+def find_stop_matching_block(stop, offset, md5_hashes):
+    """Return first block which no longer matches at offset
+
+    From the stop block, search forwards finding the first block which
+    no longer matches at block + offset.  find_start_matching_block()
+    and find_stop_matching_block() are a pair which find the Python
+    slicing range [start:stop] of an overlapping range of blocks.
+    """
+    while stop + offset < len(md5_hashes):
+        if md5_hashes[stop] != md5_hashes[stop+offset]:
+            break
+        stop += 1
+    return stop
+
+
+
+def compute_candidate_ranges(offset_blocks, md5_hashes):
+    """Return list of candidate overlapping ranges
+
+    From the offset blocks dictionary compute a list of candidate
+    overlapping ranges.  Assumes that for each offset in the offset
+    blocks dictionary there will only be one significant set of matching
+    blocks, that of the overlap being searched for, and that the median
+    (middle) block from the list is within that range.  (Alternatively,
+    what is the chance that your file system including it's metadata
+    just happens to have a set of blocks that exactly mimics the
+    overlapping range being searched for.  *Incredibly* low for larger
+    offset / overlap size).  The rank is calculated as the size of the
+    matching range divided by the size of the offset.  (A rank of 1.0
+    indicates the matching range exactly equals the offset and a valid
+    overlapping data range has been found).
+    """
+    candidate_ranges = []
+    Candidate = namedtuple('Candidate',
+                          ['offset', 'start_block', 'stop_block', 'rank'])
+    for offset, blocks in offset_blocks.items():
+        median_index = int(round((len(blocks)) / 2))
+        start_block = find_start_matching_block(blocks[median_index],
+                                                offset, md5_hashes)
+        stop_block = find_stop_matching_block(blocks[median_index],
+                                              offset, md5_hashes)
+        matching_size = stop_block - start_block
+        rank = float(matching_size) / float(offset)
+        candidate_ranges.append(Candidate(offset, start_block,
+                                          stop_block, rank))
+    candidate_ranges.sort(key=lambda c: c.rank, reverse=True)
+    return candidate_ranges
 
 
 def main(args=None):

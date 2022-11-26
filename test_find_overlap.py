@@ -20,6 +20,8 @@ import io
 import os
 import subprocess
 
+from collections import namedtuple
+
 
 EXIT_SUCCESS = 0
 
@@ -102,3 +104,26 @@ def test_compute_offset_blocks():
                  '#5': [25, 26, 27, 28]}
     result = find_overlap.compute_offset_blocks(test_dict)
     assert result == {1: [20, 21, 25, 26, 27], 2: [20, 25, 26], 3: [10, 11, 12, 25], 7: [1]}
+
+
+def test_find_start_matching_block():
+    test_hashes = ['#0', '#0', '#0', '#0']
+    assert find_overlap.find_start_matching_block(2, 1, test_hashes) == 0
+    test_hashes = ['#0', '#1', '#2', '#1', '#2', '#3']
+    assert find_overlap.find_start_matching_block(2, 2, test_hashes) == 1
+
+
+def test_find_stop_matching_block():
+    test_hashes = ['#0', '#0', '#0', '#0']
+    assert find_overlap.find_stop_matching_block(1, 1, test_hashes) == 3
+    test_hashes = ['#0', '#1', '#2', '#1', '#2', '#3']
+    assert find_overlap.find_stop_matching_block(1, 2, test_hashes) == 3
+
+
+def test_compute_candidate_ranges():
+    md5_hashes = ['#0', '#1', '#2', '#3', '#1', '#2', '#3', '#7']
+    offset_blocks = {3: [1, 2, 3]}
+    Candidate = namedtuple('Candidate',
+                           ['offset', 'start_block', 'stop_block', 'rank'])
+    result = find_overlap.compute_candidate_ranges(offset_blocks, md5_hashes)
+    assert result == [Candidate(offset=3, start_block=1, stop_block=4, rank=1.0)]
