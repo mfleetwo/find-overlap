@@ -28,6 +28,9 @@ PROGNAME = 'find-overlap.py'
 BLOCKSIZE = 1024*1024
 
 
+dump_hashes_fname = None
+
+
 def read_hashes(f):
     """Return list of MD5 hashes for all blocks read from the open file
     object.
@@ -235,11 +238,33 @@ def candidate_range_is_large_enough(candidate_range):
     return matching_size > 2
 
 
+def dump_hashes(fname, md5_hashes, matching_hashes):
+    """Write substitute hashes to the named hashes dump file
+
+    The 128-bit (8 byte) binary MD5 hashes are substituted by '#%d'
+    where '%d' is the first block number with that hash.  Each
+    substitute hash is written on a separate line.  Start of an example
+    hash dump file:
+        #0
+        #1
+        #2
+    """
+    try:
+        f = open(fname, mode='w')
+    except IOError as e:
+        sys.exit(PROGNAME + ': ' + str(e))
+    for md5_hash in md5_hashes:
+        f.write('#%d\n' % (matching_hashes[md5_hash][0]))
+    f.close()
+    
+
 def find_overlap_from_hashes(md5_hashes):
     """Return list of validated overlapping ranges from list of MD5
     hashes
     """
     matching_hashes = generate_matching_hashes(md5_hashes)
+    if dump_hashes_fname:
+        dump_hashes(dump_hashes_fname, md5_hashes, matching_hashes)
     eliminate_non_duplicates(matching_hashes)
     offset_blocks = compute_offset_blocks(matching_hashes)
     candidate_ranges = compute_candidate_ranges(offset_blocks, md5_hashes)
@@ -274,12 +299,16 @@ def main(args=None):
     """Parse command line arguments and calls the function to search for
     the overlapping range in the named device or stdin
     """
+    global dump_hashes_fname
     parser = argparse.ArgumentParser(description="""
         Find overlapping portion of a file system after an interrupted
         GParted resize/move.""")
+    parser.add_argument('--dump-hashes', dest='dump_hashes_fname',
+                        metavar='DUMP_FILE', help='Write hashes to this file')
     parser.add_argument('device', nargs='?', help="""
         optional device or file to read""")
     args = parser.parse_args(args)
+    dump_hashes_fname = args.dump_hashes_fname
     if args.device:
         try:
             f = open(args.device, mode='rb')

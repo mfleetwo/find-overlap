@@ -18,6 +18,7 @@ like this:
 import importlib
 import io
 import os
+import os.path
 import subprocess
 
 from collections import namedtuple
@@ -46,6 +47,12 @@ def setup_module():
         find_overlap = importlib.import_module('find-overlap')
 
 
+def remove_if_exists(fname):
+    """Remove file if it exists"""
+    if os.path.exists(fname):
+        os.remove(fname)
+
+
 def test_command_line_help_option():
     """Test successful exit status and output includes 'help'"""
     out = subprocess.check_output(['find-overlap.py', '--help'])
@@ -70,6 +77,16 @@ def test_command_line_two_arguments():
 def test_command_line_non_existent_device():
     rc = subprocess.call(['find-overlap.py', '/dev/does/not/exist'])
     assert rc != EXIT_SUCCESS
+
+
+def test_command_line_dump_file():
+    hashes_fname = 'hashes.txt'
+    remove_if_exists(hashes_fname)
+    rc = subprocess.call(['find-overlap.py', '--dump-hashes', hashes_fname,
+                          '/dev/null'])
+    assert rc == EXIT_SUCCESS
+    assert os.path.exists(hashes_fname)
+    os.remove(hashes_fname)
 
 
 RESULT_MD5_HASHES = [b"\xb6\xd8\x1b6\nVr\xd8\x0c'C\x0f9\x15>,",
@@ -133,6 +150,22 @@ def test_compute_candidate_ranges():
     offset_blocks = {3: [1, 2, 3]}
     result = find_overlap.compute_candidate_ranges(offset_blocks, md5_hashes)
     assert result == [Candidate(offset=3, start_block=1, stop_block=4, rank=1.0)]
+
+
+def test_dump_hashes():
+    """Dump hashes and confirm written file is correctly formatted using
+    '#%d' substituted hashes
+    """
+    md5_hashes = ['H0', 'H1', 'H2', 'H3', 'H1', 'H2', 'H3', 'H7']
+    matching_hashes = find_overlap.generate_matching_hashes(md5_hashes)
+    hashes_fname = 'hashes.txt'
+    remove_if_exists(hashes_fname)
+    find_overlap.dump_hashes(hashes_fname, md5_hashes, matching_hashes)
+    assert os.path.exists(hashes_fname)
+    with open(hashes_fname, 'r') as f:
+        dumped_hashes = f.read().splitlines()
+    assert dumped_hashes == ['#0', '#1', '#2', '#3', '#1', '#2', '#3', '#7']
+    os.remove(hashes_fname)
 
 
 def test_find_overlap_from_hashes():
@@ -227,3 +260,13 @@ def test_main_file_does_not_exist():
     """Test trying to read a non-existent device returns an error message"""
     result = find_overlap.main(['/dev/does/not/exist'])
     assert result != None
+
+
+def test_main_dump_hashes():
+    """Test dump hashes file is written when requested via main"""
+    hashes_fname = 'hashes.txt'
+    remove_if_exists(hashes_fname)
+    result = find_overlap.main(['--dump-hashes', hashes_fname, '/dev/null'])
+    assert result == None
+    assert os.path.exists(hashes_fname)
+    os.remove(hashes_fname)
