@@ -281,10 +281,8 @@ def print_overlap(cr):
            cr.start_block + cr.offset, cr.stop_block + cr.offset))
 
 
-def find_overlap_from_open_file(f):
-    """Search for the overlapping range and print the findings"""
-    md5_hashes = read_hashes(f)
-    candidate_ranges = find_overlap_from_hashes(md5_hashes)
+def print_overlap_output(candidate_ranges):
+    """Print the list of overlapping ranges"""
     if len(candidate_ranges) == 0:
         print('No overlapping range found')
         return
@@ -293,6 +291,13 @@ def find_overlap_from_open_file(f):
         print('WARNING: Multiple overlapping ranges found')
     for cr in candidate_ranges:
         print_overlap(cr)
+
+
+def find_overlap_from_open_file(f):
+    """Search for the overlapping range and print the findings"""
+    md5_hashes = read_hashes(f)
+    candidate_ranges = find_overlap_from_hashes(md5_hashes)
+    print_overlap_output(candidate_ranges)
 
 
 def main(args=None):
