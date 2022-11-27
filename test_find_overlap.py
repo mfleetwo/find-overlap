@@ -67,6 +67,11 @@ def test_command_line_two_arguments():
     assert rc != EXIT_SUCCESS
 
 
+def test_command_line_non_existent_device():
+    rc = subprocess.call(['find-overlap.py', '/dev/does/not/exist'])
+    assert rc != EXIT_SUCCESS
+
+
 RESULT_MD5_HASHES = [b"\xb6\xd8\x1b6\nVr\xd8\x0c'C\x0f9\x15>,",
                      b"\xb6\xd8\x1b6\nVr\xd8\x0c'C\x0f9\x15>,",
                      b'Y\x07\x15\x90\t\x9d!\xddC\x98\x96Y#8\xbf\x95']
@@ -208,3 +213,17 @@ def test_find_overlap_from_open_file_3(capsys):
     assert 'WARNING: Multiple overlapping ranges found' in out
     assert 'Block range [1:4) overlaps [4:7)' in out
     assert 'Block range [8:12) overlaps [12:16)' in out
+
+
+def test_main_read_dev_null(capsys):
+    """Test reading /dev/null reports no overlapping range found"""
+    result = find_overlap.main(['/dev/null'])
+    assert result == None
+    out, err = capsys.readouterr()
+    assert 'No overlapping range found' in out
+
+
+def test_main_file_does_not_exist():
+    """Test trying to read a non-existent device returns an error message"""
+    result = find_overlap.main(['/dev/does/not/exist'])
+    assert result != None

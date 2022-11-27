@@ -24,6 +24,7 @@ import sys
 from collections import namedtuple
 
 
+PROGNAME = 'find-overlap.py'
 BLOCKSIZE = 1024*1024
 
 
@@ -271,7 +272,7 @@ def find_overlap_from_open_file(f):
 
 def main(args=None):
     """Parse command line arguments and calls the function to search for
-    the overlapping range from stdin
+    the overlapping range in the named device or stdin
     """
     parser = argparse.ArgumentParser(description="""
         Find overlapping portion of a file system after an interrupted
@@ -279,7 +280,15 @@ def main(args=None):
     parser.add_argument('device', nargs='?', help="""
         optional device or file to read""")
     args = parser.parse_args(args)
-    find_overlap_from_open_file(sys.stdin)
+    if args.device:
+        try:
+            f = open(args.device, mode='rb')
+        except IOError as e:
+            return PROGNAME + ': ' + str(e)
+        find_overlap_from_open_file(f)
+        f.close()
+    else:
+        find_overlap_from_open_file(sys.stdin)
 
 
 if __name__ == '__main__':
