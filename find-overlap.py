@@ -105,7 +105,7 @@ def eliminate_non_duplicates(matching_hashes):
     # Therefore keep matching blocks up to a count of 4 replicas to
     # allow for file systems containing multiple copies of files covered
     # by the overlapping range.
-    for key, value in matching_hashes.items():
+    for key, value in list(matching_hashes.items()):
         if len(value) < 2 or len(value) > 4:
             del matching_hashes[key]
 
