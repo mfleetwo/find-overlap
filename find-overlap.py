@@ -293,6 +293,15 @@ def print_overlap_output(candidate_ranges):
         print_overlap(cr)
 
 
+def find_overlap_from_open_hashes_file(f):
+    """Read hashes from previous dump file, search for the overlapping
+    range and print the results
+    """
+    md5_hashes = f.read().splitlines()
+    candidate_ranges = find_overlap_from_hashes(md5_hashes)
+    print_overlap_output(candidate_ranges)
+
+
 def find_overlap_from_open_file(f):
     """Search for the overlapping range and print the findings"""
     md5_hashes = read_hashes(f)
@@ -308,13 +317,24 @@ def main(args=None):
     parser = argparse.ArgumentParser(description="""
         Find overlapping portion of a file system after an interrupted
         GParted resize/move.""")
+    parser.add_argument('--read-hashes', dest='read_hashes_fname',
+                        metavar='DUMP_FILE', help="""
+        Read previously saved hashes from this file instead of reading
+        from stdin or named device""")
     parser.add_argument('--dump-hashes', dest='dump_hashes_fname',
                         metavar='DUMP_FILE', help='Write hashes to this file')
     parser.add_argument('device', nargs='?', help="""
         optional device or file to read""")
     args = parser.parse_args(args)
     dump_hashes_fname = args.dump_hashes_fname
-    if args.device:
+    if args.read_hashes_fname:
+        try:
+            f = open(args.read_hashes_fname, mode='r')
+        except IOError as e:
+            return PROGNAME + ': ' + str(e)
+        find_overlap_from_open_hashes_file(f)
+        f.close()
+    elif args.device:
         try:
             f = open(args.device, mode='rb')
         except IOError as e:

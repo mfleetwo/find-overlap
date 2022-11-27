@@ -208,6 +208,16 @@ def test_print_overlap_output_2(capsys):
     assert 'Block range [8:12) overlaps [12:16)' in out
 
 
+def test_find_overlap_from_open_hashes_file(capsys):
+    data = '#0\n#1\n#2\n#3\n#1\n#2\n#3\n#7\n'
+    f = io.BytesIO(data)
+    find_overlap.find_overlap_from_open_hashes_file(f)
+    out, err = capsys.readouterr()
+    assert 'Block size: 1048576 bytes' in out
+    assert 'WARNING: Multiple overlapping ranges found' not in out
+    assert 'Block range [1:4) overlaps [4:7)' in out
+
+
 def test_find_overlap_from_open_file(capsys):
     """Test providing single overlapping input reports overlap found"""
     data = b'\x00' * find_overlap.BLOCKSIZE + \
@@ -237,6 +247,27 @@ def test_main_read_dev_null(capsys):
 def test_main_file_does_not_exist():
     """Test trying to read a non-existent device returns an error message"""
     result = find_overlap.main(['/dev/does/not/exist'])
+    assert result != None
+
+
+def test_main_read_hashes_file():
+    hashes_fname = 'hashes.txt'
+    remove_if_exists(hashes_fname)
+    data = '#0\n#1\n#2\n#3\n#1\n#2\n#3\n#7\n'
+    with open(hashes_fname, 'w') as f:
+        f.write(data)
+    result = find_overlap.main(['--read-hashes', hashes_fname])
+    assert result == None
+    os.remove(hashes_fname)
+
+
+def test_main_hashes_file_does_not_exist():
+    """Test trying to read a non-existent dump hashes file return an error
+    message
+    """
+    hashes_fname = 'hashes.txt'
+    remove_if_exists(hashes_fname)
+    result = find_overlap.main(['--read-hashes', hashes_fname])
     assert result != None
 
 
