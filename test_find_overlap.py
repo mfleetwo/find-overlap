@@ -186,6 +186,9 @@ def test_print_overlap(capsys):
     assert 'Overlap of size 3 blocks found' in out
     assert 'Range [1:4) overlaps [4:7)' in out
     assert 'Original file system size was 5 blocks' in out
+    assert 'Restore original file system with' in out
+    assert 'dd if=INPUT bs=1048576 count=2 of=OUTPUT' in out
+    assert 'dd if=INPUT bs=1048576 skip=5 seek=2 of=OUTPUT' in out
 
 
 def test_print_overlap_output_0(capsys):

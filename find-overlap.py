@@ -283,6 +283,12 @@ def print_overlap(cr):
            cr.start_block + cr.offset, cr.stop_block + cr.offset))
     print ('Original file system size was %d blocks.' %
            (cr.total_blocks - cr.offset))
+    median_block = int(round((cr.start_block + cr.stop_block) / 2))
+    print('Restore original file system with:')
+    print('    dd if=INPUT bs=%d count=%d of=OUTPUT' %
+          (BLOCKSIZE, median_block))
+    print('    dd if=INPUT bs=%d skip=%d seek=%d of=OUTPUT' %
+          (BLOCKSIZE, median_block + cr.offset, median_block))
 
 
 def print_overlap_output(candidate_ranges):
