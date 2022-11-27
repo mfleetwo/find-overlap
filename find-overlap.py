@@ -242,8 +242,9 @@ def find_overlap_from_hashes(md5_hashes):
     eliminate_non_duplicates(matching_hashes)
     offset_blocks = compute_offset_blocks(matching_hashes)
     candidate_ranges = compute_candidate_ranges(offset_blocks, md5_hashes)
-    candidate_ranges = filter(candidate_is_full_range, candidate_ranges)
-    candidate_ranges = filter(candidate_range_is_large_enough, candidate_ranges)
+    candidate_ranges = list(filter(candidate_is_full_range, candidate_ranges))
+    candidate_ranges = list(filter(candidate_range_is_large_enough,
+                                   candidate_ranges))
     return candidate_ranges
 
 
