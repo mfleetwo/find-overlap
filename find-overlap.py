@@ -247,15 +247,38 @@ def find_overlap_from_hashes(md5_hashes):
     return candidate_ranges
 
 
+def print_overlap(cr):
+    """Print one overlapping range"""
+    print('Block range [%d:%d) overlaps [%d:%d)' %
+          (cr.start_block, cr.stop_block,
+           cr.start_block + cr.offset, cr.stop_block + cr.offset))
+
+
+def find_overlap_from_open_file(f):
+    """Search for the overlapping range and print the findings"""
+    md5_hashes = read_hashes(f)
+    candidate_ranges = find_overlap_from_hashes(md5_hashes)
+    if len(candidate_ranges) == 0:
+        print('No overlapping range found')
+        return
+    print('Block size: %d bytes' % (BLOCKSIZE))
+    if len(candidate_ranges) > 1:
+        print('WARNING: Multiple overlapping ranges found')
+    for cr in candidate_ranges:
+        print_overlap(cr)
+
+
 def main(args=None):
-    """Parse command line arguments"""
+    """Parse command line arguments and calls the function to search for
+    the overlapping range from stdin
+    """
     parser = argparse.ArgumentParser(description="""
         Find overlapping portion of a file system after an interrupted
         GParted resize/move.""")
     parser.add_argument('device', nargs='?', help="""
         optional device or file to read""")
     args = parser.parse_args(args)
-    print('device='+repr(args.device))
+    find_overlap_from_open_file(sys.stdin)
 
 
 if __name__ == '__main__':

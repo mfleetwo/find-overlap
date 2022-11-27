@@ -134,3 +134,77 @@ def test_find_overlap_from_hashes():
     md5_hashes = ['#0', '#1', '#2', '#3', '#1', '#2', '#3', '#7']
     result = find_overlap.find_overlap_from_hashes(md5_hashes)
     assert result == [Candidate(offset=3, start_block=1, stop_block=4, rank=1.0)]
+
+
+def test_print_overlap(capsys):
+    """Test printed overlapping block range"""
+    cr = Candidate(offset=3, start_block=1, stop_block=4, rank=1.0)
+    find_overlap.print_overlap(cr)
+    out, err = capsys.readouterr()
+    assert 'Block range [1:4) overlaps [4:7)' in out
+
+
+def test_find_overlap_from_open_file_0(capsys):
+    """Test providing 0 length input reports no overlap found"""
+    f = io.BytesIO('')
+    find_overlap.find_overlap_from_open_file(f)
+    out, err = capsys.readouterr()
+    assert 'No overlapping range found' in out
+
+
+def test_find_overlap_from_open_file_1(capsys):
+    """Test providing unique input reports no overlap found"""
+    data = b'\x00' * find_overlap.BLOCKSIZE + \
+           b'\x01' * find_overlap.BLOCKSIZE + \
+           b'\x02' * find_overlap.BLOCKSIZE + \
+           b'\x03' * find_overlap.BLOCKSIZE + \
+           b'\x04' * find_overlap.BLOCKSIZE
+    f = io.BytesIO(data)
+    find_overlap.find_overlap_from_open_file(f)
+    out, err = capsys.readouterr()
+    assert 'No overlapping range found' in out
+
+
+def test_find_overlap_from_open_file_2(capsys):
+    """Test providing single overlapping input reports overlap found"""
+    data = b'\x00' * find_overlap.BLOCKSIZE + \
+           b'\x01' * find_overlap.BLOCKSIZE + \
+           b'\x02' * find_overlap.BLOCKSIZE + \
+           b'\x03' * find_overlap.BLOCKSIZE + \
+           b'\x01' * find_overlap.BLOCKSIZE + \
+           b'\x02' * find_overlap.BLOCKSIZE + \
+           b'\x03' * find_overlap.BLOCKSIZE + \
+           b'\x04' * find_overlap.BLOCKSIZE
+    f = io.BytesIO(data)
+    find_overlap.find_overlap_from_open_file(f)
+    out, err = capsys.readouterr()
+    assert 'Block size: 1048576 bytes' in out
+    assert 'Block range [1:4) overlaps [4:7)' in out
+    assert 'WARNING: Multiple overlapping ranges found' not in out
+
+
+def test_find_overlap_from_open_file_3(capsys):
+    """Test providing two overlapping input reports both overlaps found"""
+    data = b'\x00' * find_overlap.BLOCKSIZE + \
+           b'\x01' * find_overlap.BLOCKSIZE + \
+           b'\x02' * find_overlap.BLOCKSIZE + \
+           b'\x03' * find_overlap.BLOCKSIZE + \
+           b'\x01' * find_overlap.BLOCKSIZE + \
+           b'\x02' * find_overlap.BLOCKSIZE + \
+           b'\x03' * find_overlap.BLOCKSIZE + \
+           b'\x04' * find_overlap.BLOCKSIZE + \
+           b'\x08' * find_overlap.BLOCKSIZE + \
+           b'\x09' * find_overlap.BLOCKSIZE + \
+           b'\x0A' * find_overlap.BLOCKSIZE + \
+           b'\x0B' * find_overlap.BLOCKSIZE + \
+           b'\x08' * find_overlap.BLOCKSIZE + \
+           b'\x09' * find_overlap.BLOCKSIZE + \
+           b'\x0A' * find_overlap.BLOCKSIZE + \
+           b'\x0B' * find_overlap.BLOCKSIZE
+    f = io.BytesIO(data)
+    find_overlap.find_overlap_from_open_file(f)
+    out, err = capsys.readouterr()
+    assert 'Block size: 1048576 bytes' in out
+    assert 'WARNING: Multiple overlapping ranges found' in out
+    assert 'Block range [1:4) overlaps [4:7)' in out
+    assert 'Block range [8:12) overlaps [12:16)' in out
