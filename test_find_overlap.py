@@ -26,6 +26,9 @@ from collections import namedtuple
 EXIT_SUCCESS = 0
 
 
+Candidate = namedtuple('Candidate',
+                       ['offset', 'start_block', 'stop_block', 'rank'])
+
 find_overlap = None
 
 
@@ -123,7 +126,11 @@ def test_find_stop_matching_block():
 def test_compute_candidate_ranges():
     md5_hashes = ['#0', '#1', '#2', '#3', '#1', '#2', '#3', '#7']
     offset_blocks = {3: [1, 2, 3]}
-    Candidate = namedtuple('Candidate',
-                           ['offset', 'start_block', 'stop_block', 'rank'])
     result = find_overlap.compute_candidate_ranges(offset_blocks, md5_hashes)
+    assert result == [Candidate(offset=3, start_block=1, stop_block=4, rank=1.0)]
+
+
+def test_find_overlap_from_hashes():
+    md5_hashes = ['#0', '#1', '#2', '#3', '#1', '#2', '#3', '#7']
+    result = find_overlap.find_overlap_from_hashes(md5_hashes)
     assert result == [Candidate(offset=3, start_block=1, stop_block=4, rank=1.0)]

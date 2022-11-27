@@ -214,6 +214,39 @@ def compute_candidate_ranges(offset_blocks, md5_hashes):
     return candidate_ranges
 
 
+def candidate_is_full_range(candidate_range):
+    """Return true if the size of matching range is the size of the
+    offset
+
+    Allow the matching range to be 1 block less in case of a failure to
+    copy one block.
+    """
+    matching_size = candidate_range.stop_block - candidate_range.start_block
+    return matching_size + 1 >= candidate_range.offset
+
+
+def candidate_range_is_large_enough(candidate_range):
+    """Exclude offsets of 2 or less because accepting groups of up to 4
+    block allows 4 blocks in a row with the same MD5 hash to be found as
+    an overlapping data range of 2 blocks.
+    """
+    matching_size = candidate_range.stop_block - candidate_range.start_block
+    return matching_size > 2
+
+
+def find_overlap_from_hashes(md5_hashes):
+    """Return list of validated overlapping ranges from list of MD5
+    hashes
+    """
+    matching_hashes = generate_matching_hashes(md5_hashes)
+    eliminate_non_duplicates(matching_hashes)
+    offset_blocks = compute_offset_blocks(matching_hashes)
+    candidate_ranges = compute_candidate_ranges(offset_blocks, md5_hashes)
+    candidate_ranges = filter(candidate_is_full_range, candidate_ranges)
+    candidate_ranges = filter(candidate_range_is_large_enough, candidate_ranges)
+    return candidate_ranges
+
+
 def main(args=None):
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description="""
