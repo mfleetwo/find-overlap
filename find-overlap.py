@@ -3,14 +3,14 @@
 # Copyright (c) 2022 Mike Fleetwood
 # FILE: find-overlap.py
 
-"""find-overlap.py - Find overlapping portion of data
+"""find-overlap.py - Find overlapping range of a file system
 
 Command line tool which reads a file system (or any other data) and
-identifies the portion duplicated after an interrupted overwriting copy
-as performed by GParted when resizing/moving a partition.
+finds the overlapping range after an interrupted GParted resize/move.
 
 Works by computing the MD5 hash of every block and finding blocks with
-exactly one duplicate copy to identify the overlap size and location.
+a duplicate copy to identify the overlap size and location.  Takes as
+long to run as reading the named device.
 
 Command line usage:
     find-overlap.py [DEVICE]
