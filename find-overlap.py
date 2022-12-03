@@ -203,7 +203,8 @@ def compute_candidate_ranges(offset_blocks, md5_hashes):
     """
     candidate_ranges = []
     Candidate = namedtuple('Candidate',
-                          ['offset', 'start_block', 'stop_block', 'rank'])
+                          ['offset', 'start_block', 'stop_block',
+                           'total_blocks', 'rank'])
     for offset, blocks in offset_blocks.items():
         median_index = int(round((len(blocks)) / 2))
         start_block = find_start_matching_block(blocks[median_index],
@@ -212,8 +213,8 @@ def compute_candidate_ranges(offset_blocks, md5_hashes):
                                               offset, md5_hashes)
         matching_size = stop_block - start_block
         rank = float(matching_size) / float(offset)
-        candidate_ranges.append(Candidate(offset, start_block,
-                                          stop_block, rank))
+        candidate_ranges.append(Candidate(offset, start_block, stop_block,
+                                          len(md5_hashes), rank))
     candidate_ranges.sort(key=lambda c: c.rank, reverse=True)
     return candidate_ranges
 
@@ -276,9 +277,12 @@ def find_overlap_from_hashes(md5_hashes):
 
 def print_overlap(cr):
     """Print one overlapping range"""
-    print('Block range [%d:%d) overlaps [%d:%d)' %
+    print('Overlap of size %d blocks found.' % (cr.offset))
+    print('Range [%d:%d) overlaps [%d:%d).' %
           (cr.start_block, cr.stop_block,
            cr.start_block + cr.offset, cr.stop_block + cr.offset))
+    print ('Original file system size was %d blocks.' %
+           (cr.total_blocks - cr.offset))
 
 
 def print_overlap_output(candidate_ranges):
@@ -290,6 +294,7 @@ def print_overlap_output(candidate_ranges):
     if len(candidate_ranges) > 1:
         print('WARNING: Multiple overlapping ranges found')
     for cr in candidate_ranges:
+        print('')
         print_overlap(cr)
 
 

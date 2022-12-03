@@ -28,7 +28,8 @@ EXIT_SUCCESS = 0
 
 
 Candidate = namedtuple('Candidate',
-                       ['offset', 'start_block', 'stop_block', 'rank'])
+                       ['offset', 'start_block', 'stop_block',
+                        'total_blocks', 'rank'])
 
 find_overlap = None
 
@@ -149,7 +150,8 @@ def test_compute_candidate_ranges():
     md5_hashes = ['#0', '#1', '#2', '#3', '#1', '#2', '#3', '#7']
     offset_blocks = {3: [1, 2, 3]}
     result = find_overlap.compute_candidate_ranges(offset_blocks, md5_hashes)
-    assert result == [Candidate(offset=3, start_block=1, stop_block=4, rank=1.0)]
+    assert result == [Candidate(offset=3, start_block=1, stop_block=4,
+                                total_blocks=8, rank=1.0)]
 
 
 def test_dump_hashes():
@@ -171,15 +173,19 @@ def test_dump_hashes():
 def test_find_overlap_from_hashes():
     md5_hashes = ['#0', '#1', '#2', '#3', '#1', '#2', '#3', '#7']
     result = find_overlap.find_overlap_from_hashes(md5_hashes)
-    assert result == [Candidate(offset=3, start_block=1, stop_block=4, rank=1.0)]
+    assert result == [Candidate(offset=3, start_block=1, stop_block=4,
+                                total_blocks=8, rank=1.0)]
 
 
 def test_print_overlap(capsys):
     """Test printed overlapping block range"""
-    cr = Candidate(offset=3, start_block=1, stop_block=4, rank=1.0)
+    cr = Candidate(offset=3, start_block=1, stop_block=4,
+                   total_blocks=8, rank=1.0)
     find_overlap.print_overlap(cr)
     out, err = capsys.readouterr()
-    assert 'Block range [1:4) overlaps [4:7)' in out
+    assert 'Overlap of size 3 blocks found' in out
+    assert 'Range [1:4) overlaps [4:7)' in out
+    assert 'Original file system size was 5 blocks' in out
 
 
 def test_print_overlap_output_0(capsys):
@@ -189,23 +195,26 @@ def test_print_overlap_output_0(capsys):
 
 
 def test_print_overlap_output_1(capsys):
-    crs = [Candidate(offset=3, start_block=1, stop_block=4, rank=1.0)]
+    crs = [Candidate(offset=3, start_block=1, stop_block=4,
+                     total_blocks=8, rank=1.0)]
     find_overlap.print_overlap_output(crs)
     out, err = capsys.readouterr()
     assert 'Block size: 1048576 bytes' in out
     assert 'WARNING: Multiple overlapping ranges found' not in out
-    assert 'Block range [1:4) overlaps [4:7)' in out
+    assert 'Range [1:4) overlaps [4:7)' in out
 
 
 def test_print_overlap_output_2(capsys):
-    crs = [Candidate(offset=3, start_block=1, stop_block=4, rank=1.0),
-           Candidate(offset=4, start_block=8, stop_block=12, rank=1.0)]
+    crs = [Candidate(offset=3, start_block=1, stop_block=4,
+                     total_blocks=8, rank=1.0),
+           Candidate(offset=4, start_block=8, stop_block=12,
+                     total_blocks=8, rank=1.0)]
     find_overlap.print_overlap_output(crs)
     out, err = capsys.readouterr()
     assert 'Block size: 1048576 bytes' in out
     assert 'WARNING: Multiple overlapping ranges found' in out
-    assert 'Block range [1:4) overlaps [4:7)' in out
-    assert 'Block range [8:12) overlaps [12:16)' in out
+    assert 'Range [1:4) overlaps [4:7)' in out
+    assert 'Range [8:12) overlaps [12:16)' in out
 
 
 def test_find_overlap_from_open_hashes_file(capsys):
@@ -215,7 +224,7 @@ def test_find_overlap_from_open_hashes_file(capsys):
     out, err = capsys.readouterr()
     assert 'Block size: 1048576 bytes' in out
     assert 'WARNING: Multiple overlapping ranges found' not in out
-    assert 'Block range [1:4) overlaps [4:7)' in out
+    assert 'Range [1:4) overlaps [4:7)' in out
 
 
 def test_find_overlap_from_open_file(capsys):
@@ -233,7 +242,7 @@ def test_find_overlap_from_open_file(capsys):
     out, err = capsys.readouterr()
     assert 'Block size: 1048576 bytes' in out
     assert 'WARNING: Multiple overlapping ranges found' not in out
-    assert 'Block range [1:4) overlaps [4:7)' in out
+    assert 'Range [1:4) overlaps [4:7)' in out
 
 
 def test_main_read_dev_null(capsys):
