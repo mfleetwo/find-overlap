@@ -1,3 +1,6 @@
+![find-overlap-banner](find-overlap-banner.png)
+
+
 find-overlap.py
 ===============
 
