@@ -19,6 +19,7 @@ import importlib
 import io
 import os
 import os.path
+import pytest
 import subprocess
 
 from collections import namedtuple
@@ -168,6 +169,13 @@ def test_dump_hashes():
         dumped_hashes = f.read().splitlines()
     assert dumped_hashes == ['#0', '#1', '#2', '#3', '#1', '#2', '#3', '#7']
     os.remove(hashes_fname)
+
+
+def test_dump_hashes_to_non_existent_file():
+    """Test trying to write to a non-existent dump hash file exits"""
+    with pytest.raises(SystemExit) as e:
+        find_overlap.dump_hashes('/tmp/does/not/exist', [], [])
+    assert e.value
 
 
 def test_find_overlap_from_hashes():
