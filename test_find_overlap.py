@@ -262,6 +262,15 @@ def test_main_file_does_not_exist():
     assert result != None
 
 
+def test_main_stdin(monkeypatch, capsys):
+    """Test reading empty stdin reports no overlapping range found"""
+    monkeypatch.setattr('sys.stdin', io.BytesIO(''))
+    result = find_overlap.main([])
+    assert result == None
+    out, err = capsys.readouterr()
+    assert 'No overlapping range found' in out
+
+
 def test_main_read_hashes_file():
     hashes_fname = 'hashes.txt'
     remove_if_exists(hashes_fname)
