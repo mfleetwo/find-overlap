@@ -55,6 +55,11 @@ def remove_if_exists(fname):
         os.remove(fname)
 
 
+def extract_xz_compressed_file(fname):
+    """Extract XZ compressed file 'FNAME.xz' to 'FNAME'"""
+    subprocess.call(['xz', '--decompress', '--keep', '--force', fname+'.xz'])
+
+
 def test_command_line_help_option():
     """Test successful exit status and output includes 'help'"""
     out = subprocess.check_output(['find-overlap.py', '--help'])
@@ -308,3 +313,15 @@ def test_main_dump_hashes():
     assert result == None
     assert os.path.exists(hashes_fname)
     os.remove(hashes_fname)
+
+
+def test_integration_f18089(capsys):
+    hashes_fname = 'test-hashes-f18089.txt'
+    extract_xz_compressed_file(hashes_fname)
+    result = find_overlap.main(['--read-hashes', hashes_fname])
+    assert result == None
+    out, err = capsys.readouterr()
+    assert 'Block size: 1048576 bytes' in out
+    assert 'Overlap of size 19893 blocks found' in out
+    assert 'Range [207632:227525) overlaps [227525:247418)' in out
+    remove_if_exists(hashes_fname)
