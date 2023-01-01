@@ -325,3 +325,16 @@ def test_integration_f18089(capsys):
     assert 'Overlap of size 19893 blocks found' in out
     assert 'Range [207632:227525) overlaps [227525:247418)' in out
     remove_if_exists(hashes_fname)
+
+
+def test_integration_t1(capsys):
+    hashes_fname = 'test-hashes-t1.txt'
+    extract_xz_compressed_file(hashes_fname)
+    result = find_overlap.main(['--read-hashes', hashes_fname])
+    assert result == None
+    out, err = capsys.readouterr()
+    assert 'Block size: 1048576 bytes' in out
+    assert 'WARNING: Multiple overlapping ranges found' not in out
+    assert 'Overlap of size 4096 blocks found' in out
+    assert 'Range [4321:8417) overlaps [8417:12513)' in out
+    remove_if_exists(hashes_fname)
