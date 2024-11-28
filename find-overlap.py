@@ -19,30 +19,56 @@ Command line usage:
 
 import argparse
 import hashlib
+import os
+import signal
 import sys
-
+import time
 from collections import namedtuple
-
+from tqdm import tqdm  # For progress bar
 
 PROGNAME = 'find-overlap.py'
-BLOCKSIZE = 1024*1024
+BLOCKSIZE = 1024*1024  # 1 MiB
+TEMP_HASH_FILE = 'hashes.tmp'
 
+# Global variable to track interruption
+terminate = False
+
+def signal_handler(sig, frame):
+    """Handle terminal signals to enable graceful shutdown."""
+    global terminate
+    print("\nTerminal signal received. Saving progress...")
+    terminate = True
 
 dump_hashes_fname = None
 
-
-def read_hashes(f):
-    """Return list of MD5 hashes for all blocks read from the open file
-    object.
-    """
+def read_hashes(f, pbar):
+    """Return list of MD5 hashes for all blocks read from the open file"""
     md5_hashes = []
-    while True:
+    current_block = 0
+
+    while not terminate:
         data = f.read(BLOCKSIZE)
         if not data:
             break
         md5_hash = hashlib.md5(data).digest()
         md5_hashes.append(md5_hash)
+        current_block += 1
+        pbar.update(1)
+
+        # Save progress every 1000 blocks
+        if current_block % 1000 == 0:
+            save_hashes(md5_hashes, current_block)
+
+    save_hashes(md5_hashes, current_block)
     return md5_hashes
+
+
+def save_hashes(md5_hashes, processed_blocks):
+    """Save computed hashes and progress to a temporary file."""
+    with open(TEMP_HASH_FILE, 'w') as temp_file:
+        temp_file.write(f"{processed_blocks}\n")
+        for md5_hash in md5_hashes:
+            temp_file.write(md5_hash.hex() + '\n')
 
 
 def generate_matching_hashes(md5_hashes):
@@ -93,7 +119,7 @@ def eliminate_non_duplicates(matching_hashes):
     #     Matching pairs:        19756    19585 ( 99.1%)
     #     Matching triples:      6        0     (  0.0%)
     #     Matching quadruples:   0
-    #     
+    #
     # Test case test-hashes-t1.txt.xz had:
     # (Ext4 FS with 2 copies of 4.8 GiB of files and partial overlapping
     # copy performed)
@@ -104,7 +130,7 @@ def eliminate_non_duplicates(matching_hashes):
     #     Matching pairs:        1043   1043 (100.0%)
     #     Matching triples:      3665   3665 (100.0%)
     #     Matching quadruples:   0
-    #     
+    #
     # Therefore keep matching blocks up to a count of 4 replicas to
     # allow for file systems containing multiple copies of files covered
     # by the overlapping range.
@@ -184,7 +210,6 @@ def find_stop_matching_block(stop, offset, md5_hashes):
     return stop
 
 
-
 def compute_candidate_ranges(offset_blocks, md5_hashes):
     """Return list of candidate overlapping ranges
 
@@ -257,7 +282,7 @@ def dump_hashes(fname, md5_hashes, matching_hashes):
     for md5_hash in md5_hashes:
         f.write('#%d\n' % (matching_hashes[md5_hash][0]))
     f.close()
-    
+
 
 def find_overlap_from_hashes(md5_hashes):
     """Return list of validated overlapping ranges from list of MD5
@@ -278,7 +303,7 @@ def find_overlap_from_hashes(md5_hashes):
 def print_overlap(cr):
     """Print one overlapping range"""
     print('Overlap of size %d blocks found.' % (cr.offset))
-    print('Range [%d:%d) overlaps [%d:%d).' %
+    print('Range [%d:%d] overlaps [%d:%d].' %
           (cr.start_block, cr.stop_block,
            cr.start_block + cr.offset, cr.stop_block + cr.offset))
     print ('Original file system size was %d blocks.' %
@@ -313,9 +338,33 @@ def find_overlap_from_open_hashes_file(f):
     print_overlap_output(candidate_ranges)
 
 
+def load_saved_progress():
+    """Load saved progress from the temporary file if it exists."""
+    if not os.path.exists(TEMP_HASH_FILE):
+        return [], 0
+    with open(TEMP_HASH_FILE, 'r') as temp_file:
+        lines = temp_file.readlines()
+        processed_blocks = int(lines[0].strip())
+        md5_hashes = [bytes.fromhex(line.strip()) for line in lines[1:]]
+    return md5_hashes, processed_blocks
+
+
 def find_overlap_from_open_file(f):
     """Search for the overlapping range and print the findings"""
-    md5_hashes = read_hashes(f)
+    file_size = f.seek(0, 2)
+    f.seek(0)
+
+    total_blocks = file_size // BLOCKSIZE
+    print(f"DEBUG: File size is {file_size} bytes, which is {total_blocks} blocks.")
+
+    if total_blocks == 0:
+        print("ERROR: File size is zero or file is too small to process.")
+        return
+
+    # Initialize tqdm with total blocks to show progress
+    with tqdm(total=total_blocks, desc="Processing blocks", unit="block") as pbar:
+        md5_hashes = read_hashes(f, pbar)
+
     candidate_ranges = find_overlap_from_hashes(md5_hashes)
     print_overlap_output(candidate_ranges)
 
@@ -324,6 +373,7 @@ def main(args=None):
     """Parse command line arguments and calls the function to search for
     the overlapping range in the named device or stdin
     """
+    signal.signal(signal.SIGINT, signal_handler)
     global dump_hashes_fname
     parser = argparse.ArgumentParser(description="""
         Find overlapping portion of a file system after an interrupted
