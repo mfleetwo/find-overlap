@@ -19,30 +19,61 @@ Command line usage:
 
 import argparse
 import hashlib
+import os
+import signal
 import sys
-
+import time
 from collections import namedtuple
-
+from tqdm import tqdm  # For progress bar
 
 PROGNAME = 'find-overlap.py'
-BLOCKSIZE = 1024*1024
+BLOCKSIZE = 1024*1024  # 1 MiB
+TEMP_HASH_FILE = 'hashes.tmp'
 
+# Global variable to track interruption
+terminate = False
+
+def signal_handler(sig, frame):
+    """Handle terminal signals to enable graceful shutdown."""
+    global terminate
+    print("\nTerminal signal received. Saving progress...")
+    terminate = True
 
 dump_hashes_fname = None
 
-
-def read_hashes(f):
-    """Return list of MD5 hashes for all blocks read from the open file
-    object.
-    """
+def read_hashes(f, total_blocks, start_block=0):
+    """Return list of MD5 hashes for all blocks read from the open file"""
     md5_hashes = []
-    while True:
+    progress = tqdm(total=total_blocks, initial=start_block, unit='blocks', desc='Processing')
+    f.seek(start_block * BLOCKSIZE)
+    current_block = start_block
+    last_save_time = time.time()
+    
+    while not terminate:
         data = f.read(BLOCKSIZE)
         if not data:
             break
         md5_hash = hashlib.md5(data).digest()
         md5_hashes.append(md5_hash)
+        current_block += 1
+        progress.update(1)
+
+        # Save progress every minute
+        if time.time() - last_save_time >= 60:
+            save_hashes(md5_hashes, current_block)
+            last_save_time = time.time()
+
+    progress.close()
+    save_hashes(md5_hashes, current_block)
     return md5_hashes
+
+
+def save_hashes(md5_hashes, processed_blocks):
+    """Save computed hashes and progress to a temporary file."""
+    with open(TEMP_HASH_FILE, 'w') as temp_file:
+        temp_file.write(f"{processed_blocks}\n")
+        for md5_hash in md5_hashes:
+            temp_file.write(md5_hash.hex() + '\n')
 
 
 def generate_matching_hashes(md5_hashes):
@@ -184,7 +215,6 @@ def find_stop_matching_block(stop, offset, md5_hashes):
     return stop
 
 
-
 def compute_candidate_ranges(offset_blocks, md5_hashes):
     """Return list of candidate overlapping ranges
 
@@ -278,7 +308,7 @@ def find_overlap_from_hashes(md5_hashes):
 def print_overlap(cr):
     """Print one overlapping range"""
     print('Overlap of size %d blocks found.' % (cr.offset))
-    print('Range [%d:%d) overlaps [%d:%d).' %
+    print('Range [%d:%d] overlaps [%d:%d].' %
           (cr.start_block, cr.stop_block,
            cr.start_block + cr.offset, cr.stop_block + cr.offset))
     print ('Original file system size was %d blocks.' %
@@ -313,9 +343,33 @@ def find_overlap_from_open_hashes_file(f):
     print_overlap_output(candidate_ranges)
 
 
+def load_saved_progress():
+    """Load saved progress from the temporary file if it exists."""
+    if not os.path.exists(TEMP_HASH_FILE):
+        return [], 0
+    with open(TEMP_HASH_FILE, 'r') as temp_file:
+        lines = temp_file.readlines()
+        processed_blocks = int(lines[0].strip())
+        md5_hashes = [bytes.fromhex(line.strip()) for line in lines[1:]]
+    return md5_hashes, processed_blocks
+
+
 def find_overlap_from_open_file(f):
     """Search for the overlapping range and print the findings"""
-    md5_hashes = read_hashes(f)
+    file_size = f.seek(0, 2)
+    f.seek(0)
+
+    total_blocks = file_size // BLOCKSIZE
+    print(f"DEBUG: File size is {file_size} bytes, which is {total_blocks} blocks.")
+
+    if total_blocks == 0:
+        print("ERROR: File size is zero or file is too small to process.")
+        return
+
+    md5_hashes, processed_blocks = load_saved_progress()
+    if processed_blocks < total_blocks:
+        remaining_hashed = read_hashes(f, total_blocks, processed_blocks)
+
     candidate_ranges = find_overlap_from_hashes(md5_hashes)
     print_overlap_output(candidate_ranges)
 
@@ -324,6 +378,7 @@ def main(args=None):
     """Parse command line arguments and calls the function to search for
     the overlapping range in the named device or stdin
     """
+    signal.signal(signal.SIGINT, signal_handler)
     global dump_hashes_fname
     parser = argparse.ArgumentParser(description="""
         Find overlapping portion of a file system after an interrupted
