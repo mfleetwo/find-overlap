@@ -242,7 +242,7 @@ def candidate_range_is_large_enough(candidate_range):
 def dump_hashes(fname, md5_hashes, matching_hashes):
     """Write substitute hashes to the named hashes dump file
 
-    The 128-bit (8 byte) binary MD5 hashes are substituted by '#%d'
+    The 128-bit (16 byte) binary MD5 hashes are substituted by '#%d'
     where '%d' is the first block number with that hash.  Each
     substitute hash is written on a separate line.  Start of an example
     hash dump file:
