@@ -41,8 +41,8 @@ If you don't know what caused the interruption to the resize/move, or
 you know it was a drive fault, then follow these steps:
 1. Use [ddrescue](https://www.gnu.org/software/ddrescue/) to copy the
    damaged file system to a new drive.
-   [Google search "how to use ddrescue"](https://www.google.com/search?q=how%20to%20use%20ddrescue)
-   [ddrescue manaual](https://www.gnu.org/software/ddrescue/manual/ddrescue_manual.html)
+   * [Google search "how to use ddrescue"](https://www.google.com/search?q=how%20to%20use%20ddrescue)
+   * [ddrescue manaual](https://www.gnu.org/software/ddrescue/manual/ddrescue_manual.html)
 2. Run `find-overlap.py` on the copy.
 3. Only run the second `dd` command specifying both the `INPUT` and
    `OUTPUT` as the partition on the new drive containing the copy.
